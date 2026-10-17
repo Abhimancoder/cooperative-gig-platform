@@ -1,0 +1,13 @@
+node_modules/
+.env
+dist/
+build/
+*.log
+.DS_Store
+Thumbs.db
+.prisma/
+server/uploads/
+.vscode/
+*.db
+*.sqlite
+*.sqlite3

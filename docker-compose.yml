@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: coopserve-db
+    environment:
+      POSTGRES_USER: coopserve
+      POSTGRES_PASSWORD: coopserve123
+      POSTGRES_DB: coopserve_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U coopserve']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: coopserve-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: coopserve-api
+    ports:
+      - '5000:5000'
+    environment:
+      DATABASE_URL: postgresql://coopserve:coopserve123@postgres:5432/coopserve_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      PORT: 5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  # Frontend
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: coopserve-frontend
+    ports:
+      - '3000:80'
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
